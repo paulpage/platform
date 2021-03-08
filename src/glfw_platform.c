@@ -210,8 +210,8 @@ static void cursor_position_callback(GLFWwindow *window, double x, double y) {
 }
 
 static void scroll_callback(GLFWwindow *window, double x, double y) {
-    mouse_wheel_x += (int)x;
-    mouse_wheel_y += (int)y;
+    mouse_wheel_x += x;
+    mouse_wheel_y += y;
 }
 
 static void reshape(GLFWwindow* window, int width, int height) {
