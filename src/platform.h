@@ -1,3 +1,5 @@
+#include "keys.h"
+
 #define TRUE 1
 #define FALSE 0
 
@@ -6,43 +8,6 @@ typedef enum MouseButton {
     MOUSE_RIGHT = 1,
     MOUSE_MIDDLE = 2,
 } MouseButton;
-
-typedef struct Keymap {
-    int dummy; // TODO
-} Keymap;
-
-typedef struct Key {
-    int dummy; // TODO
-} Key;
-
-typedef struct MousemMap {
-    char left;
-    char right;
-    char middle;
-} MouseMap;
-
-typedef struct AppState {
-    int screen_height;
-    int screen_width;
-    struct {
-        int x;
-        int y;
-        struct {
-            char left;
-            char right;
-            char middle;
-        } pressed;
-        int down;
-        int wheel_dx;
-        int wheel_dy;
-    } mouse;
-    struct {
-        Keymap down;
-        Keymap pressed;
-    } keys;
-    int last_frame_time;
-    int should_quit;
-} AppState;
 
 typedef struct Color {
     unsigned char r;
@@ -83,8 +48,8 @@ int get_mouse_x();
 int get_mouse_y();
 float get_wheel_x();
 float get_wheel_y();
-int key_down(Key key);
-int key_pressed(Key key);
+int key_down(int key);
+int key_pressed(int key);
 
 // Drawing
 void draw_rect(Rect rect, Color color);

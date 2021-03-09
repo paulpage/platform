@@ -2,6 +2,7 @@
 #include "GLFW/glfw3.h"
 #include "glad/glad.h"
 
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -126,6 +127,7 @@ const GLchar *FRAG_SRC_2D_TEXTURE =
 #define COLOR_DEPTH 4
 #define MOUSE_BUTTON_COUNT 3
 #define MAX_FONTS 8
+#define KEY_COUNT 512
 
 typedef struct StbFont {
     int id;
@@ -166,6 +168,8 @@ float mouse_wheel_x = 0;
 float mouse_wheel_y = 0;
 int mouse_pressed[MOUSE_BUTTON_COUNT] = {0};
 int mouse_down[MOUSE_BUTTON_COUNT] = {0};
+char keys_down[KEY_COUNT] = {0};
+char keys_pressed[KEY_COUNT] = {0};
 
 static size_t file_length(FILE *f) {
 	long len, pos;
@@ -186,7 +190,21 @@ static unsigned char *read_file(const char *filename, size_t *plen) {
 }
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    // TODO
+    char new_state = 0;
+    switch (action) {
+        case GLFW_PRESS:
+            new_state = 1;
+            break;
+        case GLFW_RELEASE:
+            new_state = 0;
+            break;
+        default:
+            return;
+    }
+    if (key != GLFW_KEY_UNKNOWN) {
+        keys_down[key] = new_state;
+        keys_pressed[key] = new_state | keys_pressed[key];
+    }
 }
 
 static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
@@ -204,15 +222,15 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
     switch (button) {
         case GLFW_MOUSE_BUTTON_1:
             mouse_down[0] = new_state;
-            mouse_pressed[0] = new_state;
+            mouse_pressed[0] = new_state | mouse_pressed[0];
             break;
         case GLFW_MOUSE_BUTTON_2:
             mouse_down[1] = new_state;
-            mouse_pressed[1] = new_state;
+            mouse_pressed[1] = new_state | mouse_pressed[0];
             break;
         case GLFW_MOUSE_BUTTON_3:
             mouse_down[2] = new_state;
-            mouse_pressed[2] = new_state;
+            mouse_pressed[2] = new_state | mouse_pressed[0];
             break;
     }
 }
@@ -330,10 +348,15 @@ void app_quit() {
 
 void process_events() {
     // TODO optional wait instead of poll?
+    glfwPollEvents();
+
     for (int i = 0; i < MOUSE_BUTTON_COUNT; i++) {
         mouse_pressed[i] = 0;
     }
-    glfwPollEvents();
+    for (int i = 0; i < KEY_COUNT; i++) {
+        keys_pressed[i] = 0;
+    }
+
     // TODO time
     // t = glfwGetTime();
     // dt = t - t_old;
@@ -374,12 +397,12 @@ float get_wheel_y() {
     return result;
 }
 
-int is_key_down(Key key) {
-    // TODO
+int key_down(int key) {
+    return keys_down[key];
 }
 
-int is_key_pressed(Key key) {
-    // TODO
+int key_pressed(int key) {
+    return keys_pressed[key];
 }
 
 

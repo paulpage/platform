@@ -104,6 +104,10 @@ int main(int argc, char *argv[]) {
 
         draw_rect((Rect){get_mouse_x() - 25, get_mouse_y() - 25, 50, 50}, (Color){255, 255, 255, 255});
 
+        if (key_down(KEY_A)) {
+            draw_rect((Rect){100, 100, 50, 50}, (Color){255, 128, 128, 255});
+        }
+
         draw_rect((Rect){5, 5, 100, 100}, (Color){255, 0, 255, 255});
         draw_rect((Rect){get_screen_width() - 105, 5, 100, 100}, (Color){255, 255, 255, 255});
         draw_rect((Rect){5, get_screen_height() - 105, 100, 100}, (Color){255, 255, 255, 255});
