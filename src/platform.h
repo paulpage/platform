@@ -56,8 +56,9 @@ typedef struct Rect {
 } Rect;
 
 typedef struct Texture {
-    int width, height;
-    unsigned char *buffer;
+    int id;
+    int width;
+    int height;
 } Texture;
 
 typedef struct Font {
@@ -91,8 +92,7 @@ void free_font(Font font_handle);
 Font load_font(const char* filename, int size);
 void draw_text(const char *text, int x, int y, Font font_handle, Color color);
 int measure_text(const char *text, Font font_handle);
-Texture create_texture(int width, int height);
-Texture create_texture_from_bitmap(int width, int height, unsigned char *buffer);
+Texture create_texture(int width, int height, unsigned char *buffer);
 Texture load_texture(char *filename);
 void free_texture(Texture *texture);
 void draw_texture(Texture texture, int x, int y);

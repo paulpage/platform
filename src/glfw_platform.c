@@ -11,6 +11,9 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "platform.h"
 
 const GLchar *VERT_SRC_2D =
@@ -126,19 +129,29 @@ const GLchar *FRAG_SRC_2D_TEXTURE =
 
 typedef struct StbFont {
     int id;
-	stbtt_fontinfo* info;
-	stbtt_packedchar *cdata;
-	Texture atlas;
+    stbtt_fontinfo* info;
+    stbtt_packedchar *cdata;
+    Texture atlas;
     GLuint tex;
-	int texture_size;
-	float size;
-	float scale;
-	int ascent;
-	int baseline;
+    int texture_size;
+    float size;
+    float scale;
+    int ascent;
+    int baseline;
 } StbFont;
+
+typedef struct GlTexture {
+  int id;
+  GLuint gl_id;
+  int width;
+  int height;
+} GlTexture;
 
 int font_count = 0;
 StbFont *fonts[MAX_FONTS] = {0};
+int texture_count = 0;
+int texture_capacity = 8;
+GlTexture *textures;
 
 static GLFWwindow *window;
 int screen_width = 0;
@@ -310,6 +323,7 @@ void app_init(int width, int height, const char *title) {
     program_text = create_program(VERT_SRC_TEXT, FRAG_SRC_TEXT);
     program_texture = create_program(VERT_SRC_2D_TEXTURE, FRAG_SRC_2D_TEXTURE);
 
+    textures = malloc(sizeof(GlTexture) * texture_capacity);
 }
 
 void app_quit() {
@@ -562,31 +576,47 @@ int measure_text(const char *text, Font font_handle) {
 	return width;
 }
 
-Texture create_texture_from_bitmap(int width, int height, unsigned char *buffer) {
-    unsigned char *new_buffer = malloc(width * height * COLOR_DEPTH);
-    for (int i = 0; i < width * height * COLOR_DEPTH; i++) {
-        new_buffer[i] = buffer[i];
-    }
-    Texture texture = {
-        .width = width,
-        .height = height,
-        .buffer = new_buffer,
-    };
-    return texture;
-}
+Texture create_texture(int width, int height, unsigned char *buffer) {
+    GLuint gl_id = 0;
+    glGenTextures(1, &gl_id);
+    glBindTexture(GL_TEXTURE_2D, gl_id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 
-Texture create_texture(int width, int height) {
-    unsigned char *buffer = malloc(width * height * COLOR_DEPTH);
-    Texture texture = {
+    GlTexture texture = {
+        .id = texture_count,
+        .gl_id = gl_id,
         .width = width,
         .height = height,
-        .buffer = buffer,
     };
-    return texture;
+    textures[texture_count] = texture;
+
+    Texture texture_handle = {
+        .id = texture_count,
+        .width = width,
+        .height = height,
+    };
+    texture_count++;
+    if (texture_count == texture_capacity) {
+        texture_capacity *= 2;
+        GlTexture *new_textures = malloc(sizeof(Texture) * texture_capacity);
+        for (int i = 0; i < texture_capacity / 2; i++) {
+            new_textures[i] = textures[i];
+            textures = new_textures;
+        }
+    }
+    return texture_handle;
 }
 
 Texture load_texture(char *filename) {
-    // TODO
+    int x, y, n;
+    unsigned char *data = stbi_load(filename, &x, &y, &n, 4);
+    Texture texture = create_texture(x, y, data);
+    stbi_image_free(data);
+    return texture;
 }
 
 void free_texture(Texture *texture) {
@@ -594,11 +624,59 @@ void free_texture(Texture *texture) {
 }
 
 void draw_texture(Texture texture, int x, int y) {
-    // TODO
+    Rect src_rect = {0, 0, texture.width, texture.height};
+    Rect dst_rect = {x, y, texture.width, texture.height};
+    draw_texture_rect(texture, src_rect, dst_rect);
 }
 
 void draw_texture_rect(Texture texture, Rect src_rect, Rect dest_rect) {
-    // TODO
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+
+    float x0 = (float)dest_rect.x * 2.0f / (float)screen_width - 1.0f;
+    float x1 = (float)(dest_rect.x + dest_rect.w) * 2.0f / (float)screen_width - 1.0f;
+    float y0 = -1.0f * ((float)dest_rect.y * 2.0f / (float)screen_height - 1.0f);
+    float y1 = -1.0f * ((float)(dest_rect.y + dest_rect.h) * 2.0f / (float)screen_height - 1.0f);
+    float tx0 = (float)src_rect.x / (float)texture.width;
+    float tx1 = (float)(src_rect.x + src_rect.w) / (float)texture.width;
+    float ty0 = (float)src_rect.y / (float)texture.height;
+    float ty1 = (float)(src_rect.y + src_rect.h) / (float)texture.height;
+
+    GLfloat vertices[24] = {
+        x0, y0, tx0, ty0,
+        x1, y0, tx1, ty0,
+        x1, y1, tx1, ty1,
+        x0, y0, tx0, ty0,
+        x1, y1, tx1, ty1,
+        x0, y1, tx0, ty1,
+    };
+
+    GLuint vao = 0;
+    GLuint vbo = 0;
+    GLint uniform = glGetUniformLocation(program_texture, "tex");
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(GLfloat), &vertices, GL_STATIC_DRAW);
+    glBindVertexArray(vao);
+    GLsizei stride = 4 * sizeof(GLfloat);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textures[texture.id].gl_id);
+    glUniform1i(uniform, 0);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, NULL);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(2 * sizeof(GLfloat)));
+
+    glUseProgram(program_texture);
+    glDrawArrays(GL_TRIANGLES, 0, 24);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
 }
 
 void set_clear_color(Color color) {

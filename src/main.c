@@ -79,8 +79,10 @@ int main(int argc, char *argv[]) {
     int font_size = 32;
 
     app_init(800, 600, "Window");
-    set_clear_color((Color){255, 0, 0, 255});
+    set_clear_color((Color){255, 255, 0, 255});
     Font font = load_font("/usr/share/fonts/TTF/DejaVuSans.ttf", config.font_size);
+
+    Texture texture = load_texture("/home/paul/src/solitaire/res/suits.png");
 
     int line_count;
     char **file = read_file_lines("src/main.c", &line_count);
@@ -109,6 +111,8 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < line_count; i++) {
             draw_text(file[i], 5, scroll_offset + i * 25, font, (Color){0, 0, 0, 255});
         }
+
+        draw_texture(texture, 100, 100);
 
         app_present();
     }
