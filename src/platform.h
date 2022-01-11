@@ -1,8 +1,13 @@
+#include <stdint.h>
+
 #include "keys.h"
 
 #define TRUE 1
 #define FALSE 0
 
+#define KEY_COUNT 512
+
+#define MOUSE_BUTTON_COUNT 3
 typedef enum MouseButton {
     MOUSE_LEFT = 0,
     MOUSE_RIGHT = 1,
@@ -21,7 +26,7 @@ typedef struct Rect {
 } Rect;
 
 typedef struct Texture {
-    int id;
+    unsigned int id;
     int width;
     int height;
 } Texture;
@@ -40,6 +45,9 @@ void app_init();
 void app_quit();
 void process_events();
 int app_should_quit();
+void set_clear_color(Color color);
+void clear_screen();
+void app_present();
 
 // Input
 int mouse_button_down(MouseButton button);
@@ -61,10 +69,8 @@ Texture create_texture(int width, int height, unsigned char *buffer);
 Texture load_texture(char *filename);
 void free_texture(Texture *texture);
 void draw_texture(Texture texture, int x, int y);
-void draw_texture_rect(Texture texture, Rect src_rect, Rect dest_rect);
-void set_clear_color(Color color);
-void clear_screen();
-void app_present();
+void draw_partial_texture(Texture texture, Rect src_rect, Rect dest_rect);
 
 // Time
-int get_last_frame_time();
+uint64_t get_performance_counter();
+uint64_t get_performance_frequency();

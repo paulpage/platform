@@ -80,16 +80,25 @@ int main(int argc, char *argv[]) {
 
     app_init(800, 600, "Window");
     set_clear_color((Color){255, 255, 0, 255});
-    Font font = load_font("/usr/share/fonts/TTF/DejaVuSans.ttf", config.font_size);
+    Font font = load_font("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", config.font_size);
 
-    Texture texture = load_texture("/home/paul/src/solitaire/res/suits.png");
+    Texture texture = load_texture("/home/paul/s/solitaire/res/suits.png");
 
     int line_count;
-    char **file = read_file_lines("src/main.c", &line_count);
+    char **file = read_file_lines("/home/paul/s/platform/src/main.c", &line_count);
 
     int scroll_offset = 0;
 
+    uint64_t t = get_performance_counter();
+    uint64_t t_freq = get_performance_frequency();
+
     while (!app_should_quit()) {
+
+        uint64_t t1 = get_performance_counter();
+        float elapsed = (t1 - t) / (float)t_freq * 1000.0f;
+        printf("Frame time: %f ms\n", elapsed);
+        t = t1;
+
         process_events();
 
         if (mouse_button_pressed(MOUSE_LEFT)) {

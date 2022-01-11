@@ -125,9 +125,7 @@ const GLchar *FRAG_SRC_2D_TEXTURE =
 "}\n";
 
 #define COLOR_DEPTH 4
-#define MOUSE_BUTTON_COUNT 3
 #define MAX_FONTS 8
-#define KEY_COUNT 512
 
 typedef struct StbFont {
     int id;
@@ -153,7 +151,6 @@ int font_count = 0;
 StbFont *fonts[MAX_FONTS] = {0};
 int texture_count = 0;
 int texture_capacity = 8;
-GlTexture *textures;
 
 static GLFWwindow *window;
 int screen_width = 0;
@@ -334,12 +331,11 @@ void app_init(int width, int height, const char *title) {
 
     // TODO time
 
+    drawing_init();
     program_2d = create_program(VERT_SRC_2D, FRAG_SRC_2D);
     program_3d = create_program(VERT_SRC_3D, FRAG_SRC_3D);
     program_text = create_program(VERT_SRC_TEXT, FRAG_SRC_TEXT);
     program_texture = create_program(VERT_SRC_2D_TEXTURE, FRAG_SRC_2D_TEXTURE);
-
-    textures = malloc(sizeof(GlTexture) * texture_capacity);
 }
 
 void app_quit() {
@@ -607,29 +603,12 @@ Texture create_texture(int width, int height, unsigned char *buffer) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 
-    GlTexture texture = {
-        .id = texture_count,
-        .gl_id = gl_id,
+    Texture texture = {
+        .id = gl_id,
         .width = width,
         .height = height,
     };
-    textures[texture_count] = texture;
-
-    Texture texture_handle = {
-        .id = texture_count,
-        .width = width,
-        .height = height,
-    };
-    texture_count++;
-    if (texture_count == texture_capacity) {
-        texture_capacity *= 2;
-        GlTexture *new_textures = malloc(sizeof(Texture) * texture_capacity);
-        for (int i = 0; i < texture_capacity / 2; i++) {
-            new_textures[i] = textures[i];
-            textures = new_textures;
-        }
-    }
-    return texture_handle;
+    return texture;
 }
 
 Texture load_texture(char *filename) {
@@ -683,7 +662,7 @@ void draw_texture_rect(Texture texture, Rect src_rect, Rect dest_rect) {
     glBindVertexArray(vao);
     GLsizei stride = 4 * sizeof(GLfloat);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textures[texture.id].gl_id);
+    glBindTexture(GL_TEXTURE_2D, texture.id);
     glUniform1i(uniform, 0);
 
     glEnableVertexAttribArray(0);
