@@ -65,6 +65,7 @@ unsigned char *read_file(char *filename, size_t *plen) {
     char *buffer = (char*)malloc(len);
     len = fread(buffer, 1, len, f);
     if (plen) *plen = len;
+    buffer[len] = '\0';
     return buffer;
 }
 
@@ -94,10 +95,10 @@ int main(int argc, char *argv[]) {
 
     while (!app_should_quit()) {
 
-        uint64_t t1 = get_performance_counter();
-        float elapsed = (t1 - t) / (float)t_freq * 1000.0f;
-        printf("Frame time: %f ms\n", elapsed);
-        t = t1;
+        /* uint64_t t1 = get_performance_counter(); */
+        /* float elapsed = (t1 - t) / (float)t_freq * 1000.0f; */
+        /* printf("Frame time: %f ms\n", elapsed); */
+        /* t = t1; */
 
         process_events();
 
@@ -126,6 +127,8 @@ int main(int argc, char *argv[]) {
         }
 
         draw_texture(texture, 100, 100);
+
+        draw_cubes(0.0f, 0.0f, 0.0f, (Color){0, 255, 0, 255});
 
         app_present();
     }

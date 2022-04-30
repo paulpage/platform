@@ -36,6 +36,26 @@ typedef struct Font {
     int size;
 } Font;
 
+/* typedef struct Camera { */
+/*     float[3] focus; */
+/*     float distance; */
+/*     float rot_horizontal; */
+/*     float rot_vertical; */
+/*     float fovy; */
+/* } Camera; */
+
+typedef struct Uniforms {
+    int world;
+    int view;
+    int proj;
+    int view_position;
+    int light_position;
+    int light_direction;
+    int light_ambient;
+    int light_diffuse;
+    int light_specular;
+} Uniforms;
+
 // Screen
 int get_screen_width();
 int get_screen_height();
@@ -60,6 +80,7 @@ int key_down(int key);
 int key_pressed(int key);
 
 // Drawing
+void draw_cubes(float x, float y, float z, Color color);
 void draw_rect(Rect rect, Color color);
 void free_font(Font font_handle);
 Font load_font(const char* filename, int size);

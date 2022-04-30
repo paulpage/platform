@@ -208,6 +208,59 @@ void gl_drawing_init() {
     program_texture = create_program(VERT_SRC_2D_TEXTURE, FRAG_SRC_2D_TEXTURE);
 }
 
+void draw_cubes(float x, float y, float z, Color color) {
+    float s = 0.1f;
+    float c[4] = {
+        (float)color.r / 255.0f,
+        (float)color.g / 255.0f,
+        (float)color.b / 255.0f,
+        (float)color.a / 255.0f,
+    };
+    float vertices[56] = {
+        x, y, z, c[0], c[1], c[2], c[3],
+        x, y, z+s, c[0], c[1], c[2], c[3],
+        x, y+s, z, c[0], c[1], c[2], c[3],
+        x, y+s, z+s, c[0], c[1], c[2], c[3],
+        x+s, y, z, c[0], c[1], c[2], c[3],
+        x+s, y, z+s, c[0], c[1], c[2], c[3],
+        x+s, y+s, z, c[0], c[1], c[2], c[3],
+        x+s, y+x, y+s, c[0], c[1], c[2], c[3],
+    };
+    GLuint indices[36] = {
+        0, 1, 2, 2, 0, 3,
+        1, 5, 3, 5, 3, 7,
+        5, 4, 0, 0, 4, 6,
+        1, 5, 4, 5, 0, 4,
+        3, 7, 6, 3, 6, 2,
+        0, 4, 6, 0, 6, 2,
+    };
+
+    glEnable(GL_DEPTH_TEST);
+
+    GLuint ibo;
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 36, indices, GL_STATIC_DRAW);
+
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 56, vertices, GL_STATIC_DRAW);
+    
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    GLsizei stride = 7 * sizeof(GLfloat);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, NULL);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(3 * sizeof(GLfloat)));
+
+    glUseProgram(program_3d);
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (void*)0);
+}
+
 
 void draw_rect(Rect rect, Color color) {
     float x = (float)rect.x * 2.0f / (float)get_screen_width() - 1.0f;
