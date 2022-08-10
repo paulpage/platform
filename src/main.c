@@ -81,7 +81,11 @@ int main(int argc, char *argv[]) {
 
     app_init(800, 600, "Window");
     set_clear_color((Color){255, 255, 0, 255});
+<<<<<<< Updated upstream
     Font font = load_font("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", config.font_size);
+=======
+    Font font = load_font("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", config.font_size);
+>>>>>>> Stashed changes
 
     Texture texture = load_texture("/home/paul/s/solitaire/res/suits.png");
 

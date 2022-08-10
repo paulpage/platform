@@ -1,8 +1,7 @@
-#define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
-#include "glad/glad.h"
-
-
+#include <SDL2/SDL.h>
+#include <GL/glew.h>
+#include <SDL2/SDL_opengl.h>
+#include <GL/glu.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -19,7 +18,9 @@
 #include "gl_platform_shaders.h"
 
 #define COLOR_DEPTH 4
+#define MOUSE_BUTTON_COUNT 3
 #define MAX_FONTS 8
+#define KEY_COUNT 512
 
 typedef struct StbFont {
     int id;
@@ -45,8 +46,10 @@ int font_count = 0;
 StbFont *fonts[MAX_FONTS] = {0};
 int texture_count = 0;
 int texture_capacity = 8;
+GlTexture *textures;
 
-static GLFWwindow *window;
+/* static GLFWwindow *window; */
+static SDL_Window *window;
 int screen_width = 0;
 int screen_height = 0;
 GLuint program_2d;
@@ -80,67 +83,67 @@ static unsigned char *read_file(const char *filename, size_t *plen) {
     return buffer;
 }
 
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    char new_state = 0;
-    switch (action) {
-        case GLFW_PRESS:
-            new_state = 1;
-            break;
-        case GLFW_RELEASE:
-            new_state = 0;
-            break;
-        default:
-            return;
-    }
-    if (key != GLFW_KEY_UNKNOWN) {
-        keys_down[key] = new_state;
-        keys_pressed[key] = new_state | keys_pressed[key];
-    }
-}
+/* static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) { */
+/*     char new_state = 0; */
+/*     switch (action) { */
+/*         case GLFW_PRESS: */
+/*             new_state = 1; */
+/*             break; */
+/*         case GLFW_RELEASE: */
+/*             new_state = 0; */
+/*             break; */
+/*         default: */
+/*             return; */
+/*     } */
+/*     if (key != GLFW_KEY_UNKNOWN) { */
+/*         keys_down[key] = new_state; */
+/*         keys_pressed[key] = new_state | keys_pressed[key]; */
+/*     } */
+/* } */
 
-static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
-    char new_state = 0;
-    switch (action) {
-        case GLFW_RELEASE:
-            new_state = 0;
-            break;
-        case GLFW_PRESS:
-            new_state = 1;
-            break;
-        default:
-            return;
-    }
-    switch (button) {
-        case GLFW_MOUSE_BUTTON_1:
-            mouse_down[0] = new_state;
-            mouse_pressed[0] = new_state | mouse_pressed[0];
-            break;
-        case GLFW_MOUSE_BUTTON_2:
-            mouse_down[1] = new_state;
-            mouse_pressed[1] = new_state | mouse_pressed[0];
-            break;
-        case GLFW_MOUSE_BUTTON_3:
-            mouse_down[2] = new_state;
-            mouse_pressed[2] = new_state | mouse_pressed[0];
-            break;
-    }
-}
+/* static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) { */
+/*     char new_state = 0; */
+/*     switch (action) { */
+/*         case GLFW_RELEASE: */
+/*             new_state = 0; */
+/*             break; */
+/*         case GLFW_PRESS: */
+/*             new_state = 1; */
+/*             break; */
+/*         default: */
+/*             return; */
+/*     } */
+/*     switch (button) { */
+/*         case GLFW_MOUSE_BUTTON_1: */
+/*             mouse_down[0] = new_state; */
+/*             mouse_pressed[0] = new_state | mouse_pressed[0]; */
+/*             break; */
+/*         case GLFW_MOUSE_BUTTON_2: */
+/*             mouse_down[1] = new_state; */
+/*             mouse_pressed[1] = new_state | mouse_pressed[0]; */
+/*             break; */
+/*         case GLFW_MOUSE_BUTTON_3: */
+/*             mouse_down[2] = new_state; */
+/*             mouse_pressed[2] = new_state | mouse_pressed[0]; */
+/*             break; */
+/*     } */
+/* } */
 
-static void cursor_position_callback(GLFWwindow *window, double x, double y) {
-    mouse_x = (int)x;
-    mouse_y = (int)y;
-}
+/* static void cursor_position_callback(GLFWwindow *window, double x, double y) { */
+/*     mouse_x = (int)x; */
+/*     mouse_y = (int)y; */
+/* } */
 
-static void scroll_callback(GLFWwindow *window, double x, double y) {
-    mouse_wheel_x += x;
-    mouse_wheel_y += y;
-}
+/* static void scroll_callback(GLFWwindow *window, double x, double y) { */
+/*     mouse_wheel_x += x; */
+/*     mouse_wheel_y += y; */
+/* } */
 
-static void reshape(GLFWwindow* window, int width, int height) {
-    screen_width = width;
-    screen_height = height;
-    glViewport(0, 0, (GLsizei)width, (GLsizei)height);
-}
+/* static void reshape(GLFWwindow* window, int width, int height) { */
+/*     screen_width = width; */
+/*     screen_height = height; */
+/*     glViewport(0, 0, (GLsizei)width, (GLsizei)height); */
+/* } */
 
 static GLuint create_shader(GLenum type, const GLchar *src) {
     GLuint id = glCreateShader(type);
@@ -194,30 +197,39 @@ int get_screen_height() {
 
 // Control
 void app_init(int width, int height, const char *title) {
-    if (!glfwInit()) {
-        exit(EXIT_FAILURE);
-    }
-    window = glfwCreateWindow(width, height, title, NULL, NULL);
-    if (!window) {
-        glfwTerminate();
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         exit(EXIT_FAILURE);
     }
 
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    if (!gladLoadGL()) {
+    window = SDL_CreateWindow("App", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    if (window == NULL) {
         exit(EXIT_FAILURE);
     }
+    context = SDL_GL_CreateContext(window);
+    if (context == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    glewExperimental = GL_TRUE; 
+    GLenum glewError = glewInit();
+    if (glewError != GLEW_OK) {
+        exit(EXIT_FAILURE);
+    }
+    if (SDL_GL_SetSwapInterval(1) < 0) {
+        printf("Warning: Unable to set VSync: %s\n", SDL_GetError());
+    }
 
-    glfwSetFramebufferSizeCallback(window, reshape);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetCursorPosCallback(window, cursor_position_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    /* glfwSetFramebufferSizeCallback(window, reshape); */
+    /* glfwSetKeyCallback(window, key_callback); */
+    /* glfwSetMouseButtonCallback(window, mouse_button_callback); */
+    /* glfwSetCursorPosCallback(window, cursor_position_callback); */
+    /* glfwSetScrollCallback(window, scroll_callback); */
 
-    glfwGetFramebufferSize(window, &width, &height);
-    reshape(window, width, height);
+    /* glfwGetFramebufferSize(window, &width, &height); */
+    /* reshape(window, width, height); */
     glClearColor(0.0f, 0.0f, 0.0f, 255.0f);
 
     glDepthFunc(GL_LESS);
@@ -225,20 +237,36 @@ void app_init(int width, int height, const char *title) {
 
     // TODO time
 
-    drawing_init();
     program_2d = create_program(VERT_SRC_2D, FRAG_SRC_2D);
     program_3d = create_program(VERT_SRC_3D, FRAG_SRC_3D);
     program_text = create_program(VERT_SRC_TEXT, FRAG_SRC_TEXT);
     program_texture = create_program(VERT_SRC_2D_TEXTURE, FRAG_SRC_2D_TEXTURE);
+
+    textures = malloc(sizeof(GlTexture) * texture_capacity);
 }
 
 void app_quit() {
-    glfwTerminate();
+    glDeleteProgram(program_2d);
+    glDeleteProgram(program_3d);
+    glDeleteProgram(program_text);
+    glDeleteProgram(program_texture);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 }
 
 void process_events() {
     // TODO optional wait instead of poll?
-    glfwPollEvents();
+
+    SDL_Event *event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_QUIT:
+                app_quit();
+                return;
+            case SDL_MOUSEBUTTONDOWN:
+
+        }
+    }
 
     for (int i = 0; i < MOUSE_BUTTON_COUNT; i++) {
         mouse_pressed[i] = 0;
@@ -248,9 +276,6 @@ void process_events() {
     }
 
     // TODO time
-    // t = glfwGetTime();
-    // dt = t - t_old;
-    // t_old = t;
 }
 
 int app_should_quit() {
@@ -497,12 +522,29 @@ Texture create_texture(int width, int height, unsigned char *buffer) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 
-    Texture texture = {
-        .id = gl_id,
+    GlTexture texture = {
+        .id = texture_count,
+        .gl_id = gl_id,
         .width = width,
         .height = height,
     };
-    return texture;
+    textures[texture_count] = texture;
+
+    Texture texture_handle = {
+        .id = texture_count,
+        .width = width,
+        .height = height,
+    };
+    texture_count++;
+    if (texture_count == texture_capacity) {
+        texture_capacity *= 2;
+        GlTexture *new_textures = malloc(sizeof(Texture) * texture_capacity);
+        for (int i = 0; i < texture_capacity / 2; i++) {
+            new_textures[i] = textures[i];
+            textures = new_textures;
+        }
+    }
+    return texture_handle;
 }
 
 Texture load_texture(char *filename) {
@@ -556,7 +598,7 @@ void draw_texture_rect(Texture texture, Rect src_rect, Rect dest_rect) {
     glBindVertexArray(vao);
     GLsizei stride = 4 * sizeof(GLfloat);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glBindTexture(GL_TEXTURE_2D, textures[texture.id].gl_id);
     glUniform1i(uniform, 0);
 
     glEnableVertexAttribArray(0);
